@@ -1,0 +1,242 @@
+import sys, openpyxl, csv, re
+from PyQt4 import QtGui, QtCore
+
+''' 
+TODO:
+	-User selects file:
+		C:/Users/jsmith48/Documents/py-informatics/flow cyto workflow/2016/08 Aug/22/PatientFolder/LPD Template_copy.xlsx
+	-Concatenate the Statistics.csv and Information.csv sheets
+	-Rename final report with patient nam
+e'''
+
+my_files = ['Statistics.csv','Information.csv']
+
+global parent_path, patient_name, template
+parent_path, patient_name, template = None, None, None
+
+class Window(QtGui.QMainWindow):
+	def __init__(self):
+
+		super(Window, self).__init__()
+		self.setGeometry(75, 75, 610, 300)
+		self.setWindowTitle("Kaluza to Copath Tool")
+
+		self.setWindowIcon(QtGui.QIcon('pythonlogo.png'))
+
+		self.title_label = QtGui.QLabel('<b>Ctyo Workflow Analysis</b>', self)
+		self.title_label.resize(300,25)
+		self.title_label.move(225, 5)
+
+		self.select_file = QtGui.QLineEdit('Path here', self)
+		self.select_file.resize(560,25)
+		self.select_file.move(25, 125)
+
+		self.select_file_btn = QtGui.QPushButton('Select file', self)
+		self.select_file_btn.move(400, 75)
+
+		self.merge_sheets_btn = QtGui.QPushButton('Merge', self)
+		self.merge_sheets_btn.move(400, 175)
+
+		self.select_file_label = QtGui.QLabel(' 1.) Select the template you want to use: ', self)
+		self.select_file_label.resize(350,25)
+		self.select_file_label.move(25, 25)
+
+		self.select_file_label = QtGui.QLabel(' 2.) Select a file within the patient folder: ', self)
+		self.select_file_label.resize(350,25)
+		self.select_file_label.move(25, 75)
+
+		self.files_label = QtGui.QLabel('3.) Press merge; files listed below will be added into our master CSV file: ', self)
+		self.files_label.resize(350,25)
+		self.files_label.move(25, 175)
+
+		self.my_files_label = QtGui.QLabel('', self)
+		self.my_files_label.resize(450,25)
+		self.my_files_label.move(25, 220)
+
+		self.my_file_label = QtGui.QLabel('', self)
+		self.my_file_label.resize(450,25)
+		self.my_file_label.move(25, 250)
+
+		self.select_file_btn.clicked.connect(self.file_open)
+		self.merge_sheets_btn.clicked.connect(self.merge_files)
+
+		#templates = ["Hairy_cell_Template", "LPD_(T&B) Template", "LPD_(T, B & HC) Template", "LPD_(T, B & T2) Template", "LPD_(T2) Template"]
+
+		templates = ["AL-4 Tubes","AL-6 Tubes","AL-B-ALL","AL-T-ALL","B-T","B-T-HC","B-T-T2"]
+
+
+		self.comboBox = QtGui.QComboBox(self)
+		self.comboBox.resize(150,25)
+
+		for item in templates:
+			self.comboBox.addItem(item)
+
+		self.comboBox.move(400, 25)
+		self.comboBox.activated.connect(self.cueDropDownMenu)
+
+	def cueDropDownMenu(self, text):
+		global template
+		template = self.comboBox.currentText()
+		print template
+
+
+	def file_open(self):
+		global parent_path, patient_name, template
+
+		name = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
+		file = open(name, 'r')
+
+		#self.editor()
+		self.select_file.setText(str(file.name))
+
+		self.my_files_label.setText(str(my_files))
+		self.my_files_label.setStyleSheet("color: rgb(255, 0, 255);")
+
+		filename = str(file.name)
+		parent_path = filename.split('/')
+
+		print parent_path[:]
+
+		#get patient name
+		patient_name = parent_path[-2]
+
+		#final parent folder
+		del parent_path[-1]
+		parent_path = '/'.join(parent_path)
+
+		print "[+] File path is " + file.name
+		print "[+] It's contained in this folder " + parent_path
+		print "[+] The patient name is " + patient_name
+		print '\n'
+
+		for item in my_files:
+			print parent_path + '/' + item
+
+		print template
+
+		with file:
+			text = file.read()
+			#self.textEdit.setText(text)
+
+	def merge_files(self):
+		global template
+
+		stats = open(parent_path+'/'+'Statistics.csv')
+		info = open(parent_path+'/'+'Information.csv')
+		
+		'''
+		Take the current template and copy it over to the parent folder with Stat and Info csv data
+
+		Update temp_path accordingly, e.g. "L:\\Flow Cytometry\\2016-TESTING-Justin\\Report Templates\\"
+
+		'''
+
+		if (template == "AL-4 Tubes"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\AL-4 Tubes\\AL-4 Tubes Template.xlsx")
+
+		elif (template == "AL-6 Tube"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\AL-6 Tubes\\AL-6 Tubes Template.xlsx")
+
+		elif (template == "AL-B-ALL"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\AL-B-ALL\\B-ALL Report.xlsx")
+
+		elif (template == "AL-T-ALL"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\AL-T-ALL\\T-ALL Report.xlsx")
+
+		elif (template == "B-T"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\B-T\\LPD_(T&B) Template.xlsx")
+
+		elif (template == "B-T-HC"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\B-T-HC\\LPD_(T, B & HC) Template.xlsx")
+
+		elif (template == "B-T-T2"):
+			temp_path = ("C:\\Users\\jsmith48\\Documents\\CYTO\\B-T\\LPD_(T, B & T2) Template.xlsx")
+
+
+
+
+
+		#wb = openpyxl.load_workbook(template_path1)
+		#wb = openpyxl.load_workbook(parent_path+'/'+template+'.xlsx')
+		#wb = openpyxl.load_workbook('C:\\Users\\jsmith48\\Documents\\CYTO\\Report Templates\\Hairy cell_Template.xlsx')
+
+		wb = openpyxl.load_workbook(temp_path)
+
+		sheet = wb.active
+		stats_sheet = wb.get_sheet_by_name('Statistics')
+		info_sheet = wb.get_sheet_by_name('Information')
+
+		for item in my_files:
+			print item
+
+		#Remove pesky inherent quotes..
+		clean_list = []
+		info = info.readlines()
+		for item in info:
+			item = item.replace('"', '')
+			clean_list.append(item)
+
+		clean_list2 = []
+		stats = stats.readlines()
+		for item in stats:
+			item = item.replace('"', '')
+			clean_list2.append(item)
+
+		for item in clean_list2:
+			print item
+
+		#Write information.csv to the respective sheet in the LDP Template
+		info_list = list()
+		
+		'''
+		where is the f*** are all these blank cells coming from in the stats/info sheet?
+		'''
+
+		for item in clean_list:	
+			words = re.findall('\S+ \S.*', item)
+			print "Here is `INFO` list: " + str(words)
+			info_list.append(words)
+
+		for items in info_list:
+			for item in items:
+				x = item.split(",")
+				info_sheet.append(x)
+				print type(x)
+
+		stats_list = list()
+		for item in clean_list2:	
+			words = re.findall('\S+ \S.*', item)
+			stats_list.append(words)
+
+		for items in stats_list:
+			for item in items:
+				x = item.split(",")
+				stats_sheet.append(x)
+
+		#Save file renamed with Patient information
+
+		wb.save(parent_path+'/'+str(patient_name)+'_Complete.xlsx')
+		final_wb = parent_path+'/'+str(patient_name)+'_Complete.xlsx'
+		print final_wb
+
+		final_wb = final_wb.split('/')[-1:]
+		print final_wb
+
+		self.my_files_label.setText(str(my_files) + " were merged.")
+		self.my_files_label.setStyleSheet("color: rgb(0, 102, 51);")
+
+		self.my_file_label.setText(str(final_wb) + " was created. DONE.")
+		self.my_file_label.setStyleSheet("color: rgb(0, 102, 51);")
+
+	def editor(self):
+		self.textEdit = QtGui.QTextEdit()
+		self.setCentralWidget(self.textEdit)
+
+def main():
+	app = QtGui.QApplication(sys.argv)
+	GUI = Window()
+	GUI.show()
+	sys.exit(app.exec_())
+
+if __name__ == '__main__':
+	main()
